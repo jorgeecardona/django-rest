@@ -1,26 +1,29 @@
-from django.http import HttpResponse
+import logging
+
+from django.http import HttpResponse, HttpResponseBadRequest
 from django.utils import simplejson
 from django.db.models.query import QuerySet
 from django.db.models import Model
 from django.db.models.base import ModelBase
-from django.conf.urls.defaults import urls
+from django.conf.urls.defaults import url
+
 
 def url_rest(regexp, get = None, post = None, put = None, delete = None):
+
     methods = {}
-
     if get:
-        methods['GET'] = GET        
-
+        methods['GET'] = get
+        
     if post:
-        methods['POST'] = POST
+        methods['POST'] = post
 
     if put:
-        methods['PUT'] = PUT
+        methods['PUT'] = put
 
     if delete:
-        methods['DELETE'] = DELETE
+        methods['DELETE'] = delete
 
-        return url(regexp, 'rest.dispatcher', methods)
+    return url(regexp, 'core.rest.dispatcher', methods)
 
 
 def dispatcher(request, GET=None, POST=None, DELETE=None, PUT=None, **kwords):
@@ -44,7 +47,7 @@ def dispatcher(request, GET=None, POST=None, DELETE=None, PUT=None, **kwords):
         # Get the base name and the internal module from the name
         name, internal = POST.rsplit(".",1)
         
-        # Import the base bame        
+        # Import the base bame
         module = __import__(name, fromlist=["*"])        
         
         # Get the internal module
@@ -59,7 +62,7 @@ def dispatcher(request, GET=None, POST=None, DELETE=None, PUT=None, **kwords):
         request._load_post_and_files()
         request.method = 'PUT'
         request.PUT = request.POST
-        
+
         # Get the base name and the internal module from the name
         name, internal = PUT.rsplit(".",1)
         
@@ -88,6 +91,21 @@ def dispatcher(request, GET=None, POST=None, DELETE=None, PUT=None, **kwords):
 
     return HttpResponse("Error")
 
+class Error(Exception):
+    """
+    Rest Error
+    ==========
+
+    This class is used to create a rest response with an error.
+    """
+    pass
+
+
+class IncorrectMethod(Exception):
+    pass
+
+class IncorrectResult(Exception):
+    pass
 
 def from_entity_to_dict(entity, fields = None, add_to_dict = None):
     """
@@ -96,9 +114,12 @@ def from_entity_to_dict(entity, fields = None, add_to_dict = None):
     """
     
     if fields is None:
-        first = entity.__dict__.items()
+        if isinstance(entity, dict):
+            first = entity.items()
+        else:
+            first = entity.__dict__.items()
     else:
-        first = [(field, getattr(entity, field)) for field in fields]
+        first = [(field, getattr(entity, field)) for field in fields if hasattr(entity, field)]
         
     if callable(add_to_dict):
         return dict(first + add_to_dict(entity).items())
@@ -124,6 +145,7 @@ def retrieve(fields = None, add_to_dict = None, timestamp = None, mimetype = "te
                 result = f(request, *args, **kwords)
             except Exception, e:
                 # Create a response with an error code but with the error message.
+                logging.error(e)
                 return HttpResponse(e, status=400)                
             
             # IF image return it as is.
@@ -132,7 +154,7 @@ def retrieve(fields = None, add_to_dict = None, timestamp = None, mimetype = "te
                 return HttpResponse(result, mimetype=mimetype)
 
             # Check for the result type
-            if not isinstance(result, (Model, QuerySet)):
+            if not isinstance(result, (Model, QuerySet, dict)):
                 raise IncorrectResult("Incorrect result returned by retrieve.")
 
             # Order by date 
@@ -167,6 +189,7 @@ def list(fields = None, add_to_dict = None, timestamp = None, collection = None,
                     result = f(request, *args, **kwords)
                 except Error, e:
                     # Create a response with an error code but with the error message.
+                    logging.error(e)
                     return HttpResponse('')
                 
                 
@@ -204,10 +227,12 @@ def create(form = None, collection=None, create_method=None, fields = None, add_
             if type(collection) is None:
                 pass
 
-
-
-            result = f(request, *args, **kwords)
-
+            try:
+                result = f(request, *args, **kwords)
+            except Exception, e:
+                logging.error(e)
+                return  HttpResponseBadRequest('')
+                
             if result is None:
                 res = HttpResponse('')
                 res.status_code = 400
@@ -240,6 +265,7 @@ def delete(collection = None):
 
             except Exception, e:
                 # Create a response with an error code but with the error message.
+                logging.error(e)
                 return HttpResponse(e, status=400)
 
             return HttpResponse('', status=204)
@@ -274,8 +300,3 @@ def update(fields = None):
         return new_f
     return dec
 
-class IncorrectMethod(Exception):
-    pass
-
-class IncorrectResult(Exception):
-    pass
