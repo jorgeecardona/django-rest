@@ -178,7 +178,7 @@ def retrieve(fields = None, add_to_dict = None, timestamp = None, mimetype = "te
         return new_f
     return dec
 
-def list(fields = None, add_to_dict = None, timestamp = None, collection = None, mimetype = "text/html"):
+def list_(fields = None, add_to_dict = None, timestamp = None, collection = None, mimetype = "text/html"):
     def dec(f):
         def new_f(request, *args, **kwords):
 
@@ -239,11 +239,14 @@ def create(form = None, collection=None, create_method=None, fields = None, add_
                 return res
             
             # Check for the result type
-            if not isinstance(result, (Model,)):
+            if not isinstance(result, (Model, list)):
                 raise IncorrectResult("Incorrect result returned by retrieve.")
 
             # Select the right fields
-            result_list = from_entity_to_dict(result, fields, add_to_dict)
+            if isinstance(result, list):
+                result_list = [from_entity_to_dict(r, fields, add_to_dict) for r in result]
+            else:
+                result_list = from_entity_to_dict(result, fields, add_to_dict)
                 
             # Serialize the object
             result_string = simplejson.dumps(result_list)
