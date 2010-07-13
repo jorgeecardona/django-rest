@@ -112,7 +112,6 @@ def from_entity_to_dict(entity, fields = None, add_to_dict = None):
     This function pass a model entity to a dict, based on a list of fields
     and a callback function that compute extra (key,value) pairs.
     """
-    
     if fields is None:
         if isinstance(entity, dict):
             first = entity.items()
@@ -122,8 +121,8 @@ def from_entity_to_dict(entity, fields = None, add_to_dict = None):
         first = [(field, getattr(entity, field)) for field in fields if hasattr(entity, field)]
         
     if callable(add_to_dict):
-        return dict(first + add_to_dict(entity).items())
-    
+        first += add_to_dict(entity).items()
+
     return dict(first)
 
 def retrieve(fields = None, add_to_dict = None, timestamp = None, mimetype = "text/html", auth=None):
@@ -159,7 +158,7 @@ def retrieve(fields = None, add_to_dict = None, timestamp = None, mimetype = "te
 
             # Order by date 
             # TODO: why am i doing this??
-            if type(result) is QuerySet and type(timestamp) is str:
+            if isinstance(result, QuerySet) and isinstance(timestamp, (str, unicode)):
                 result = result.order_by(timestamp)
                 
             # As this is a retrive select only the oldest
@@ -167,6 +166,7 @@ def retrieve(fields = None, add_to_dict = None, timestamp = None, mimetype = "te
                 result = result[0]
                     
             # Select the right fields
+            print fields
             result_list = from_entity_to_dict(result, fields, add_to_dict)
                 
             # Serialize the object
