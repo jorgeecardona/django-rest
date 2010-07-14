@@ -166,7 +166,6 @@ def retrieve(fields = None, add_to_dict = None, timestamp = None, mimetype = "te
                 result = result[0]
                     
             # Select the right fields
-            print fields
             result_list = from_entity_to_dict(result, fields, add_to_dict)
                 
             # Serialize the object
@@ -187,10 +186,10 @@ def list_(fields = None, add_to_dict = None, timestamp = None, collection = None
                 # Call the function, it suppose to return a QuerySet or a list, 
                 try:
                     result = f(request, *args, **kwords)
-                except Error, e:
+                except Exception, e:
                     # Create a response with an error code but with the error message.
                     logging.error(e)
-                    return HttpResponse('')
+                    return HttpResponse(simplejson.dumps([]), status=400)
                 
                 
                 # Check for the result type
