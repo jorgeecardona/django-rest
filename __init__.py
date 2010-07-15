@@ -129,16 +129,6 @@ def retrieve(fields = None, add_to_dict = None, timestamp = None, mimetype = "te
     def dec(f):
         def new_f(request, *args, **kwords):
 
-            # Identify agent
-#            agent = rbac.identfy_from_request(request)
-
-            # Authenticate agent
-#            if rbac.authenticate_agent():
-#                pass
-
-            # Authorize
-            
-
             # Call the function, it suppose to return a QueryDict
             try:
                 result = f(request, *args, **kwords)
