@@ -1,4 +1,5 @@
 import logging
+import traceback
 
 from django.http import HttpResponse, HttpResponseBadRequest
 from django.utils import simplejson
@@ -135,6 +136,7 @@ def retrieve(fields = None, add_to_dict = None, timestamp = None, mimetype = "te
             except Exception, e:
                 # Create a response with an error code but with the error message.
                 logging.error(e)
+                logging.error(traceback.print_exc())
                 return HttpResponse(e, status=400)                
             
             # IF image return it as is.
@@ -179,6 +181,7 @@ def list_(fields = None, add_to_dict = None, timestamp = None, collection = None
                 except Exception, e:
                     # Create a response with an error code but with the error message.
                     logging.error(e)
+                    logging.error(traceback.print_exc())
                     return HttpResponse(simplejson.dumps([]), status=400)
                 
                 
@@ -220,6 +223,7 @@ def create(form = None, collection=None, create_method=None, fields = None, add_
                 result = f(request, *args, **kwords)
             except Exception, e:
                 logging.error(e)
+                logging.error(traceback.print_exc())
                 return  HttpResponseBadRequest('')
                 
             if result is None:
@@ -258,6 +262,7 @@ def delete(collection = None):
             except Exception, e:
                 # Create a response with an error code but with the error message.
                 logging.error(e)
+                logging.error(traceback.print_exc())
                 return HttpResponse(e, status=400)
 
             return HttpResponse('', status=204)
